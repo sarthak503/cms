@@ -1,0 +1,33 @@
+# Ignore Python bytecode files
+__pycache__/
+*.pyc
+
+# Ignore system-specific files
+*.DS_Store
+Thumbs.db
+
+# Ignore environment-specific settings files
+.env
+
+# Ignore the virtual environment directory
+env/
+
+# Ignore database files
+db.sqlite3
+
+# Ignore static and media files (if not using a CDN)
+/staticfiles/
+/media/
+
+# Ignore local settings file
+MIS_project/settings_local.py
+
+# Ignore secret keys and sensitive information
+MIS_project/.env
+
+# Ignore IDE or editor-specific files
+.vscode/
+.idea/
+
+# Ignore log files
+*.log
