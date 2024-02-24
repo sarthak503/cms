@@ -13,7 +13,7 @@ Thumbs.db
 env/
 
 # Ignore database files
-db.sqlite3
+# db.sqlite3
 
 # Ignore static and media files (if not using a CDN)
 /staticfiles/
