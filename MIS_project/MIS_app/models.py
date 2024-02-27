@@ -21,7 +21,7 @@ class Student(models.Model):
         # Add more choices as needed
     ]
     dept = models.CharField(max_length=100, choices=dept_choices)
-    year = models.PositiveSmallIntegerField()
+    year = models.CharField(max_length=2) 
     course_choices = [
         ('BT', 'BTech'),
         ('MT', 'MTech'),
@@ -29,7 +29,7 @@ class Student(models.Model):
     ]
     course = models.CharField(max_length=10, choices=course_choices)
     doj = models.DateField()
-    sem = models.PositiveSmallIntegerField()
+    sem = models.CharField(max_length=2) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -37,16 +37,18 @@ class Student(models.Model):
         return f"{self.rollno} - {self.first_name} {self.last_name}"
 
 
-# class Subject(models.Model):
-#     subject_name = models.CharField(max_length=100)
-#     course_code = models.CharField(max_length=10)
-#     semester = models.PositiveSmallIntegerField()
-#     intended_for_choices = [
-#         ('BT', 'BTech'),
-#         ('MT', 'MTech'),
-#         ('PhD', 'PhD')
-#     ]
-#     intended_for = models.CharField(max_length=10, choices=intended_for_choices)
+class Subject(models.Model):
+    course_code = models.CharField(primary_key=True,max_length=10)
+    subject_name = models.CharField(max_length=100)
+    semester = models.PositiveSmallIntegerField()
+    intended_for_choices = [
+        ('BT', 'BTech'),
+        ('MT', 'MTech'),
+        ('PhD', 'PhD')
+    ]
+    intended_for = models.CharField(max_length=10, choices=intended_for_choices)
+    credit = models.PositiveSmallIntegerField()  # Add credit field
+    teacher_id = models.CharField(max_length=20)  # Add teacher_id field
 
-#     def __str__(self):
-#         return self.subject_name
+    def __str__(self):
+        return self.subject_name
