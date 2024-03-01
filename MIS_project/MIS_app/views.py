@@ -62,6 +62,31 @@ class StudentDetail(generics.RetrieveUpdateDestroyAPIView):
         self.perform_destroy(instance)
         return Response({"message": "Student deleted successfully"})
 
+# SUBJECT SECTION STARTS
+
+
+@csrf_exempt
+def upload_subjects_csv(request):
+    if request.method == 'POST' and request.FILES['csv_file']:
+        csv_file = request.FILES['csv_file']
+        decoded_file = csv_file.read().decode('utf-8').splitlines()
+        reader = csv.DictReader(decoded_file)
+
+        for row in reader:
+            Subject.objects.create(
+                course_code=row['course_code'],
+                subject_name=row['subject_name'],
+                semester=row['semester'],
+                intended_for=row['intended_for'],
+                credit=row['credit'],
+                teacher_id=row.get('teacher_id', None)  # Handle null value for teacher_id
+            )
+
+        return JsonResponse({'message': 'Data from CSV file uploaded successfully'}, status=200)
+    else:
+        return JsonResponse({'error': 'No file uploaded'}, status=400)
+    
+    
 class SubjectList(generics.ListCreateAPIView):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
@@ -69,9 +94,9 @@ class SubjectList(generics.ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
+        serializer.save()  # Save serializer data without calling perform_create
         return Response({"message": "Subject created successfully"}, status=status.HTTP_201_CREATED)
-
+    
 class SubjectDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Subject.objects.all()
     serializer_class = SubjectSerializer
@@ -80,7 +105,7 @@ class SubjectDetail(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
+        serializer.save()  # Save serializer data without calling perform_update
         return Response({"message": "Subject updated successfully"})
 
     def delete(self, request, *args, **kwargs):

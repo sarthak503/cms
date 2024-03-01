@@ -48,7 +48,7 @@ class Subject(models.Model):
     ]
     intended_for = models.CharField(max_length=10, choices=intended_for_choices)
     credit = models.PositiveSmallIntegerField()  # Add credit field
-    teacher_id = models.CharField(max_length=20)  # Add teacher_id field
+    teacher_id = models.CharField(max_length=20,null=True)  # Add teacher_id field
 
     def __str__(self):
         return self.subject_name
