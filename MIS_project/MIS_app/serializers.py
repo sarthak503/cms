@@ -14,3 +14,11 @@ class SubjectSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'teacher_id': {'required': False}  # Make teacher_id not required
         }
+
+
+from .models import Faculty
+
+class FacultySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Faculty
+        fields = '__all__'

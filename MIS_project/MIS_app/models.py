@@ -52,3 +52,16 @@ class Subject(models.Model):
 
     def __str__(self):
         return self.subject_name
+
+
+class Faculty(models.Model):
+    name = models.CharField(max_length=100)
+    faculty_id = models.CharField(primary_key=True, max_length=20)
+    phone_no = models.CharField(max_length=15)
+    email_id = models.EmailField(unique=True)
+    dept = models.CharField(max_length=100)
+    specialisation = models.TextField()  # TextField for comma-separated values
+    role = models.TextField()  # TextField for comma-separated values
+
+    def __str__(self):
+        return self.name
