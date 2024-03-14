@@ -11,5 +11,6 @@ urlpatterns = [
     path('faculty/', views.FacultyList.as_view(), name='faculty-list-create'),
     path('faculty/<str:pk>/', views.FacultyDetail.as_view(), name='faculty-retrieve-update-destroy'),
     path('upload-faculty-csv/', views.upload_faculty_csv, name='upload-faculty-csv'),
+    path('filter/', views.filter_subjects, name='filter_subjects'),
 
 ]

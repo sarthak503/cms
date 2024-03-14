@@ -6,6 +6,9 @@ from .serializers import StudentSerializer,SubjectSerializer,FacultySerializer
 from django.http import JsonResponse
 import csv
 from django.views.decorators.csrf import csrf_exempt
+    
+from django.contrib.auth import authenticate, login
+from django.contrib.auth.forms import UserCreationForm
 
 @csrf_exempt
 def upload_students_csv(request):
@@ -114,6 +117,21 @@ class SubjectDetail(generics.RetrieveUpdateDestroyAPIView):
         return Response({"message": "Subject deleted successfully"})
     
 
+
+def filter_subjects(request):
+    if request.method == 'GET':
+        dept = request.GET.get('dept', '')
+        semester = request.GET.get('semester', '')
+        intended_for = request.GET.get('intended_for', '')
+
+        filtered_subjects = Subject.objects.filter(dept=dept, semester=semester, intended_for=intended_for)
+
+        subjects_list = list(filtered_subjects.values())
+
+        return JsonResponse(subjects_list, safe=False)
+
+    
+
 # FACULTY SECTION
 @csrf_exempt
 def upload_faculty_csv(request):
@@ -162,3 +180,5 @@ class FacultyDetail(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response({"message": "Faculty deleted successfully"})
+
+
