@@ -1,14 +1,33 @@
 # views.py
 from rest_framework import generics, status
 from rest_framework.response import Response
-from .models import Student,Subject,Faculty
-from .serializers import StudentSerializer,SubjectSerializer,FacultySerializer
+from .models import Student,Subject,Faculty,Role
+from .serializers import StudentSerializer,SubjectSerializer,FacultySerializer,RoleSerializer
 from django.http import JsonResponse
 import csv
 from django.views.decorators.csrf import csrf_exempt
     
-from django.contrib.auth import authenticate, login
-from django.contrib.auth.forms import UserCreationForm
+from .models import Role
+
+class RoleList(generics.ListAPIView):
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+
+def get_user_type(request):
+    #print(request.GET.get('email'))   Print the entire GET dictionary for debugging
+    email = request.GET.get('email')
+    if not email:
+        return JsonResponse({'error': 'Email parameter is missing'}, status=400)
+
+    try:
+        role = Role.objects.get(emailid=email)
+        user_type = role.get_user_type_display()  # Get the display value of the user type
+        return JsonResponse({'user_type': user_type})
+    except Role.DoesNotExist as e:
+        print(f"User not found for email: {email}. Error: {e}")
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+
 
 @csrf_exempt
 def upload_students_csv(request):
@@ -34,6 +53,8 @@ def upload_students_csv(request):
                 doj=row['doj'],
                 sem=row['sem']
             )
+            # Create Role entry for the student
+            Role.objects.create(emailid=row['email'], user_type=2)
 
         return JsonResponse({'message': 'Data from CSV file uploaded successfully'}, status=200)
     else:
@@ -47,6 +68,8 @@ class StudentsList(generics.ListCreateAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         self.perform_create(serializer)
+        # Create Role entry for the student
+        Role.objects.create(emailid=request.data['email'], user_type=2)
         return Response({"message": "Student created successfully"}, status=status.HTTP_201_CREATED)
 
 class StudentDetail(generics.RetrieveUpdateDestroyAPIView):
@@ -64,6 +87,62 @@ class StudentDetail(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response({"message": "Student deleted successfully"})
+
+
+# FACULTY SECTION
+@csrf_exempt
+def upload_faculty_csv(request):
+    if request.method == 'POST' and request.FILES['csv_file']:
+        csv_file = request.FILES['csv_file']
+        decoded_file = csv_file.read().decode('utf-8').splitlines()
+        reader = csv.DictReader(decoded_file)
+
+        for row in reader:
+            Faculty.objects.create(
+                name=row['name'],
+                faculty_id=row['faculty_id'],
+                phone_no=row['phone_no'],
+                email_id=row['email_id'],
+                dept=row['dept'],
+                specialisation=row['specialisation'],
+                role=row['role']
+            )
+            # Create Role entry for the faculty
+            Role.objects.create(emailid=row['email_id'], user_type=3)
+
+        return JsonResponse({'message': 'Data from CSV file uploaded successfully'}, status=200)
+    else:
+        return JsonResponse({'error': 'No file uploaded'}, status=400)
+
+class FacultyList(generics.ListCreateAPIView):
+    queryset = Faculty.objects.all()
+    serializer_class = FacultySerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        # Create Role entry for the faculty
+        Role.objects.create(emailid=request.data['email_id'], user_type=3)
+        return Response({"message": "Faculty created successfully"}, status=status.HTTP_201_CREATED)
+
+class FacultyDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Faculty.objects.all()
+    serializer_class = FacultySerializer
+
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({"message": "Faculty updated successfully"})
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response({"message": "Faculty deleted successfully"})
+
+
 
 # SUBJECT SECTION STARTS
 
@@ -131,54 +210,3 @@ def filter_subjects(request):
         return JsonResponse(subjects_list, safe=False)
 
     
-
-# FACULTY SECTION
-@csrf_exempt
-def upload_faculty_csv(request):
-    if request.method == 'POST' and request.FILES['csv_file']:
-        csv_file = request.FILES['csv_file']
-        decoded_file = csv_file.read().decode('utf-8').splitlines()
-        reader = csv.DictReader(decoded_file)
-
-        for row in reader:
-            Faculty.objects.create(
-                name=row['name'],
-                faculty_id=row['faculty_id'],
-                phone_no=row['phone_no'],
-                email_id=row['email_id'],
-                dept=row['dept'],
-                specialisation=row['specialisation'],
-                role=row['role']
-            )
-
-        return JsonResponse({'message': 'Data from CSV file uploaded successfully'}, status=200)
-    else:
-        return JsonResponse({'error': 'No file uploaded'}, status=400)
-
-class FacultyList(generics.ListCreateAPIView):
-    queryset = Faculty.objects.all()
-    serializer_class = FacultySerializer
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        return Response({"message": "Faculty created successfully"}, status=status.HTTP_201_CREATED)
-
-class FacultyDetail(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Faculty.objects.all()
-    serializer_class = FacultySerializer
-
-    def put(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response({"message": "Faculty updated successfully"})
-
-    def delete(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response({"message": "Faculty deleted successfully"})
-
-

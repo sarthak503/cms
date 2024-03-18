@@ -1,10 +1,6 @@
 #models.py
 
 from django.db import models
-from django.contrib.auth.models import AbstractUser,Group,Permission
-from django.db.models.signals import post_save
-from django.dispatch import receiver
-
 
 class Student(models.Model):
     rollno = models.CharField(primary_key=True, max_length=10)
@@ -78,3 +74,14 @@ class Subject(models.Model):
     def __str__(self):
         return self.subject_name
 
+class Role(models.Model):
+    USER_TYPES = (
+        (1, 'Admin'),
+        (2, 'Student'),
+        (3, 'Faculty'),
+    )
+    emailid = models.EmailField(primary_key=True,unique=True)
+    user_type = models.PositiveSmallIntegerField(choices=USER_TYPES)
+
+    def __str__(self):
+        return f"{self.emailid} - {self.get_user_type_display()}"

@@ -1,6 +1,6 @@
 
 from rest_framework import serializers
-from .models import Student, Subject
+from .models import Student, Subject,Role, Faculty
 
 class StudentSerializer(serializers.ModelSerializer):
     class Meta:
@@ -15,10 +15,13 @@ class SubjectSerializer(serializers.ModelSerializer):
             'teacher_id': {'required': False}  # Make teacher_id not required
         }
 
-
-from .models import Faculty
-
 class FacultySerializer(serializers.ModelSerializer):
     class Meta:
         model = Faculty
         fields = '__all__'
+
+
+class RoleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Role
+        fields = ['emailid', 'user_type']
