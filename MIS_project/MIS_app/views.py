@@ -1,17 +1,25 @@
 # views.py
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.decorators import api_view
 from .models import Student,Subject,Faculty,Role
 from .serializers import StudentSerializer,SubjectSerializer,FacultySerializer,RoleSerializer
 from django.http import JsonResponse
 import csv
 from django.views.decorators.csrf import csrf_exempt
-    
-from .models import Role
 
-class RoleList(generics.ListAPIView):
+
+
+class RoleList(generics.ListCreateAPIView):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({'message': 'Role created successfully'}, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def get_user_type(request):
     #print(request.GET.get('email'))   Print the entire GET dictionary for debugging
@@ -21,11 +29,12 @@ def get_user_type(request):
 
     try:
         role = Role.objects.get(emailid=email)
-        user_type = role.get_user_type_display()  # Get the display value of the user type
+        user_type = role.user_type # Get the display value of the user type
         return JsonResponse({'user_type': user_type})
     except Role.DoesNotExist as e:
         print(f"User not found for email: {email}. Error: {e}")
         return JsonResponse({'error': 'User not found'}, status=404)
+
 
 
 
@@ -210,3 +219,30 @@ def filter_subjects(request):
         return JsonResponse(subjects_list, safe=False)
 
     
+
+
+from .models import Attendance
+from .serializers import AttendanceSerializer
+
+@api_view(['POST'])
+def mark_attendance(request):
+    if request.method == 'POST':
+        serializer = AttendanceSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response({"message": "Attendance marked successfully"}, status=201)
+        return Response(serializer.errors, status=400)
+
+@api_view(['GET'])
+def get_student_attendance(request, student_id):
+    if request.method == 'GET':
+        attendance_records = Attendance.objects.filter(student_id=student_id)
+        serializer = AttendanceSerializer(attendance_records, many=True)
+        return Response(serializer.data)
+
+@api_view(['GET'])
+def get_subject_attendance(request, subject_id):
+    if request.method == 'GET':
+        attendance_records = Attendance.objects.filter(subject_id=subject_id)
+        serializer = AttendanceSerializer(attendance_records, many=True)
+        return Response(serializer.data)

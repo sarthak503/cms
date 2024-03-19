@@ -12,7 +12,11 @@ urlpatterns = [
     path('faculty/<str:pk>/', views.FacultyDetail.as_view(), name='faculty-retrieve-update-destroy'),
     path('upload-faculty-csv/', views.upload_faculty_csv, name='upload-faculty-csv'),
     path('filter/', views.filter_subjects, name='filter_subjects'),
-    path('roles/', views.RoleList.as_view(), name='role-list'),  
+    path('mark-attendance/', views.mark_attendance, name='mark-attendance'),
+    path('get-student-attendance/<int:student_id>/', views.get_student_attendance, name='get-student-attendance'),
+    path('get-subject-attendance/<str:subject_id>/', views.get_subject_attendance, name='get-subject-attendance'),
+    path('roles/', views.RoleList.as_view(), name='role-list'),
     path('get-user-type/', views.get_user_type, name='get-user-type'),
+
 
 ]
