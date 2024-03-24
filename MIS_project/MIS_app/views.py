@@ -3,6 +3,7 @@ from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .models import Student,Subject,Faculty,Role
+from django.shortcuts import get_object_or_404
 from .serializers import StudentSerializer,SubjectSerializer,FacultySerializer,RoleSerializer
 from django.http import JsonResponse
 import csv
@@ -35,22 +36,22 @@ def get_user_type(request):
         print(f"User not found for email: {email}. Error: {e}")
         return JsonResponse({'error': 'User not found'}, status=404)
 
-def get_rollno_from_email(request):
-    if request.method == 'GET':
-        email = request.GET.get('email', None)
-        if email:
-            try:
-                role = Role.objects.get(emailid=email, user_type=2)
-                student = Student.objects.get(email=email)
-                return JsonResponse({'rollno': student.rollno})
-            except Role.DoesNotExist:
-                return JsonResponse({'error': 'User not found or not a student'}, status=404)
-            except Student.DoesNotExist:
-                return JsonResponse({'error': 'Student not found for this email'}, status=404)
-        else:
-            return JsonResponse({'error': 'Email parameter is missing'}, status=400)
-    else:
-        return JsonResponse({'error': 'Only GET method is allowed'}, status=405)
+# def get_rollno_from_email(request):
+#     if request.method == 'GET':
+#         email = request.GET.get('email', None)
+#         if email:
+#             try:
+#                 role = Role.objects.get(emailid=email, user_type=2)
+#                 student = Student.objects.get(email=email)
+#                 return JsonResponse({'rollno': student.rollno})
+#             except Role.DoesNotExist:
+#                 return JsonResponse({'error': 'User not found or not a student'}, status=404)
+#             except Student.DoesNotExist:
+#                 return JsonResponse({'error': 'Student not found for this email'}, status=404)
+#         else:
+#             return JsonResponse({'error': 'Email parameter is missing'}, status=400)
+#     else:
+#         return JsonResponse({'error': 'Only GET method is allowed'}, status=405)
 
 
 @csrf_exempt
@@ -99,18 +100,14 @@ class StudentsList(generics.ListCreateAPIView):
 class StudentDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
+    lookup_url_kwarg = 'lookup'  # Custom lookup URL keyword argument
 
-    def put(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-        return Response({"message": "Student updated successfully"})
-
-    def delete(self, request, *args, **kwargs):
-        instance = self.get_object()
-        self.perform_destroy(instance)
-        return Response({"message": "Student deleted successfully"})
+    def get_object(self):
+        lookup_value = self.kwargs.get(self.lookup_url_kwarg)
+        if lookup_value.isdigit():  # Check if the lookup value is a digit (assuming it's a rollno)
+            return get_object_or_404(self.queryset, rollno=lookup_value)
+        else:  # If it's not a digit, assume it's an email
+            return get_object_or_404(self.queryset, email=lookup_value)
 
 
 # FACULTY SECTION

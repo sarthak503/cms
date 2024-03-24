@@ -3,7 +3,6 @@ from . import views
 
 urlpatterns = [
     path('students/', views.StudentsList.as_view(), name='student-list'),
-    path('students/<str:pk>/', views.StudentDetail.as_view(), name='student-detail'),
     path('subjects/', views.SubjectList.as_view(), name='subject-list'),
     path('subjects/<str:pk>/', views.SubjectDetail.as_view(), name='subject-detail'),
     path('upload-students-csv/', views.upload_students_csv, name='upload_students_csv'),
@@ -17,7 +16,8 @@ urlpatterns = [
     path('get-subject-attendance/<str:subject_id>/', views.get_subject_attendance, name='get-subject-attendance'),
     path('roles/', views.RoleList.as_view(), name='role-list'),
     path('get-user-type/', views.get_user_type, name='get-user-type'),
-    path('get-rollno/', views.get_rollno_from_email, name='get_rollno_from_email'),
+
+    path('students/<str:lookup>/', views.StudentDetail.as_view(), name='student_detail'),
 
 
 ]
