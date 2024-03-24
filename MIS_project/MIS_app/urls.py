@@ -17,6 +17,7 @@ urlpatterns = [
     path('get-subject-attendance/<str:subject_id>/', views.get_subject_attendance, name='get-subject-attendance'),
     path('roles/', views.RoleList.as_view(), name='role-list'),
     path('get-user-type/', views.get_user_type, name='get-user-type'),
+    path('get-rollno/', views.get_rollno_from_email, name='get_rollno_from_email'),
 
 
 ]

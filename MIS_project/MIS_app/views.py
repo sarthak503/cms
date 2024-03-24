@@ -35,7 +35,22 @@ def get_user_type(request):
         print(f"User not found for email: {email}. Error: {e}")
         return JsonResponse({'error': 'User not found'}, status=404)
 
-
+def get_rollno_from_email(request):
+    if request.method == 'GET':
+        email = request.GET.get('email', None)
+        if email:
+            try:
+                role = Role.objects.get(emailid=email, user_type=2)
+                student = Student.objects.get(email=email)
+                return JsonResponse({'rollno': student.rollno})
+            except Role.DoesNotExist:
+                return JsonResponse({'error': 'User not found or not a student'}, status=404)
+            except Student.DoesNotExist:
+                return JsonResponse({'error': 'Student not found for this email'}, status=404)
+        else:
+            return JsonResponse({'error': 'Email parameter is missing'}, status=400)
+    else:
+        return JsonResponse({'error': 'Only GET method is allowed'}, status=405)
 
 
 @csrf_exempt
