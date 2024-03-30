@@ -217,44 +217,58 @@ class SubjectDetail(generics.RetrieveUpdateDestroyAPIView):
         return Response({"message": "Subject deleted successfully"})
     
 
-
 def filter_subjects(request):
     if request.method == 'GET':
         dept = request.GET.get('dept', '')
-        semester = request.GET.get('semester', '')
         intended_for = request.GET.get('intended_for', '')
 
-        filtered_subjects = Subject.objects.filter(dept=dept, semester=semester, intended_for=intended_for)
+        # Filter based on dept and intended_for regardless of other parameters
+        filters = {'dept': dept, 'intended_for': intended_for}
+
+        # Check if semester is provided
+        semester = request.GET.get('semester', None)
+        if semester:
+            filters['semester'] = semester
+
+        # Check if facultyid is provided
+        faculty_id = request.GET.get('facultyid', None)
+        if faculty_id:
+            filters['teacher_id'] = faculty_id
+        else:
+            # If facultyid is not provided, remove it from the filters
+            filters.pop('teacher_id', None)
+
+        filtered_subjects = Subject.objects.filter(**filters)
 
         subjects_list = list(filtered_subjects.values())
 
-        return JsonResponse(subjects_list, safe=False)
+        # If no semester or facultyid is provided, return all subjects based on dept and intended_for
+        if not semester and not faculty_id:
+            all_filtered_subjects = Subject.objects.filter(dept=dept, intended_for=intended_for)
+            all_subjects_list = list(all_filtered_subjects.values())
+            return JsonResponse(all_subjects_list, safe=False)
 
+        return JsonResponse(subjects_list, safe=False)
     
 
-
-from .models import Attendance
-from .serializers import AttendanceSerializer
-
-@api_view(['POST'])
-def mark_attendance(request):
-    if request.method == 'POST':
-        serializer = AttendanceSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({"message": "Attendance marked successfully"}, status=201)
-        return Response(serializer.errors, status=400)
-
-@api_view(['GET'])
-def get_student_attendance(request, student_id):
+def filter_students(request):
     if request.method == 'GET':
-        attendance_records = Attendance.objects.filter(student_id=student_id)
-        serializer = AttendanceSerializer(attendance_records, many=True)
-        return Response(serializer.data)
+        dept = request.GET.get('dept', '')
+        sem = request.GET.get('sem', '')
+        course = request.GET.get('course', '')
 
-@api_view(['GET'])
-def get_subject_attendance(request, subject_id):
-    if request.method == 'GET':
-        attendance_records = Attendance.objects.filter(subject_id=subject_id)
-        serializer = AttendanceSerializer(attendance_records, many=True)
-        return Response(serializer.data)
+        filters = {}
+
+        if dept:
+            filters['dept'] = dept
+        if sem:
+            filters['sem'] = sem
+        if course:
+            filters['course'] = course
+
+        filtered_students = Student.objects.filter(**filters)
+
+        students_list = list(filtered_students.values())
+
+        return JsonResponse(students_list, safe=False)
+    

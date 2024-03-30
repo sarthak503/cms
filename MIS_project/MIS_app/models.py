@@ -86,16 +86,3 @@ class Role(models.Model):
     def __str__(self):
         return f"{self.emailid} - {self.get_user_type_display()}"
 
-
-class Attendance(models.Model):
-    student = models.ForeignKey(Student, on_delete=models.CASCADE)
-    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
-    date = models.DateField()
-    status_choices = [
-        ('P', 'Present'),
-        ('A', 'Absent')
-    ]
-    status = models.CharField(max_length=1, choices=status_choices)
-
-    class Meta:
-        unique_together = ['student', 'subject', 'date']  # Ensure unique attendance records per student, subject, and date
