@@ -2,9 +2,10 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
-from .models import Student,Subject,Faculty,Role
+from rest_framework.views import APIView
+from .models import Student,Subject,Faculty,Role,Attendance
 from django.shortcuts import get_object_or_404
-from .serializers import StudentSerializer,SubjectSerializer,FacultySerializer,RoleSerializer
+from .serializers import StudentSerializer,SubjectSerializer,FacultySerializer,RoleSerializer,AttendanceSerializer
 from django.http import JsonResponse
 import csv
 from django.views.decorators.csrf import csrf_exempt
@@ -22,19 +23,32 @@ class RoleList(generics.ListCreateAPIView):
             return Response({'message': 'Role created successfully'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
+@api_view(['GET'])
 def get_user_type(request):
-    #print(request.GET.get('email'))   Print the entire GET dictionary for debugging
     email = request.GET.get('email')
     if not email:
         return JsonResponse({'error': 'Email parameter is missing'}, status=400)
 
     try:
         role = Role.objects.get(emailid=email)
-        user_type = role.user_type # Get the display value of the user type
-        return JsonResponse({'user_type': user_type})
-    except Role.DoesNotExist as e:
-        print(f"User not found for email: {email}. Error: {e}")
+        user_type = role.user_type
+        
+        if user_type == 1:  # If user is an admin
+            return JsonResponse({'user_type': user_type})
+        elif user_type == 2:  # If user is a student
+            student = Student.objects.get(email=email)
+            serializer = StudentSerializer(student)
+            return JsonResponse({'user_type': user_type, 'details': serializer.data})
+        elif user_type == 3:  # If user is a faculty
+            faculty = Faculty.objects.get(email_id=email)
+            serializer = FacultySerializer(faculty)
+            return JsonResponse({'user_type': user_type, 'details': serializer.data})
+        else:
+            return JsonResponse({'error': 'User not found or user type is invalid'}, status=404)
+    except Role.DoesNotExist:
         return JsonResponse({'error': 'User not found'}, status=404)
+
 
 # def get_rollno_from_email(request):
 #     if request.method == 'GET':
@@ -150,6 +164,16 @@ class FacultyList(generics.ListCreateAPIView):
 class FacultyDetail(generics.RetrieveUpdateDestroyAPIView):
     queryset = Faculty.objects.all()
     serializer_class = FacultySerializer
+    lookup_url_kwarg = 'lookup'  # Custom lookup URL keyword argument
+
+    def get_object(self):
+        lookup_value = self.kwargs.get(self.lookup_url_kwarg)
+        
+        # Check if the lookup value is an email
+        if '@' in lookup_value:
+            return get_object_or_404(self.queryset, email_id=lookup_value)
+        else:  # Assume it's a faculty ID
+            return get_object_or_404(self.queryset, faculty_id=lookup_value)
 
     def put(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -162,8 +186,6 @@ class FacultyDetail(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         self.perform_destroy(instance)
         return Response({"message": "Faculty deleted successfully"})
-
-
 
 # SUBJECT SECTION STARTS
 
@@ -272,3 +294,36 @@ def filter_students(request):
 
         return JsonResponse(students_list, safe=False)
     
+
+
+class BulkAttendanceUpload(APIView):
+    def post(self, request):
+        attendance_data = request.data  # Assuming the frontend sends an array of attendance objects
+        errors = []
+        for data in attendance_data:
+            serializer = AttendanceSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+            else:
+                errors.append(serializer.errors)
+        
+        if errors:
+            return Response({"errors": errors}, status=400)
+        else:
+            return Response({"message": "Attendance uploaded successfully"}, status=200)
+
+class AttendanceDetailView(APIView):
+    def delete(self, request, pk):
+        try:
+            attendance = Attendance.objects.get(pk=pk)
+            attendance.delete()
+            return Response({"message": "Attendance deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+        except Attendance.DoesNotExist:
+            return Response({"error": "Attendance not found"}, status=status.HTTP_404_NOT_FOUND)
+
+class AttendanceListView(APIView):
+    def get(self, request):
+        attendance = Attendance.objects.all()
+        serializer = AttendanceSerializer(attendance, many=True)
+        return Response(serializer.data)
+

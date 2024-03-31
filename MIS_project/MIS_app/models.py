@@ -86,3 +86,21 @@ class Role(models.Model):
     def __str__(self):
         return f"{self.emailid} - {self.get_user_type_display()}"
 
+
+
+
+class Attendance(models.Model):
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    date = models.DateField()
+    STATUS_CHOICES = (
+        ('P', 'Present'),
+        ('A', 'Absent'),
+        ('OD', 'On Duty'),
+    )
+    status = models.CharField(max_length=2, choices=STATUS_CHOICES)
+
+    class Meta:
+        unique_together = ('student', 'date', 'subject')
+    def __str__(self):
+        return f"{self.student} - {self.subject} - {self.date} - {self.status}"
