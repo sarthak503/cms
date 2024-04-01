@@ -321,9 +321,21 @@ class AttendanceDetailView(APIView):
         except Attendance.DoesNotExist:
             return Response({"error": "Attendance not found"}, status=status.HTTP_404_NOT_FOUND)
 
+
 class AttendanceListView(APIView):
     def get(self, request):
-        attendance = Attendance.objects.all()
-        serializer = AttendanceSerializer(attendance, many=True)
-        return Response(serializer.data)
+        student_id = request.query_params.get('student_id')
+        subject_id = request.query_params.get('subject_id')
+        date = request.query_params.get('date')
+        start_date = request.query_params.get('start_date')
+        end_date = request.query_params.get('end_date')
 
+        if student_id and subject_id and date:
+            attendance = Attendance.objects.filter(student_id=student_id, subject_id=subject_id, date=date).first()
+            serializer = AttendanceSerializer(attendance)
+            return Response(serializer.data)
+
+        if student_id and subject_id and start_date and end_date:
+            attendance = Attendance.objects.filter(student_id=student_id, subject_id=subject_id, date__range=[start_date, end_date])
+            serializer = AttendanceSerializer(attendance, many=True)
+            return Response(serializer.data)
