@@ -339,3 +339,25 @@ class AttendanceListView(APIView):
             attendance = Attendance.objects.filter(student_id=student_id, subject_id=subject_id, date__range=[start_date, end_date])
             serializer = AttendanceSerializer(attendance, many=True)
             return Response(serializer.data)
+
+from datetime import datetime
+        
+def attendance_list(request):
+    if request.method == 'GET':
+        subject_id = request.GET.get('subject_id')
+        date_str = request.GET.get('date')
+
+        if subject_id is None or date_str is None:
+            return JsonResponse({'error': 'Both subject_id and date are required.'}, status=400)
+
+        try:
+            date = datetime.strptime(date_str, '%Y-%m-%d').date()
+        except ValueError:
+            return JsonResponse({'error': 'Invalid date format. Use YYYY-MM-DD.'}, status=400)
+
+        attendance = Attendance.objects.filter(subject_id=subject_id, date=date)
+        serializer = AttendanceSerializer(attendance, many=True)
+
+        return JsonResponse({'attendance': serializer.data})
+
+    return JsonResponse({'error': 'Method not allowed.'}, status=405)

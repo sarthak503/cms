@@ -17,6 +17,7 @@ urlpatterns = [
     path('filter-students/', views.filter_students, name='filter_students'),
     path('bulk-attendance-upload/', views.BulkAttendanceUpload.as_view(), name='bulk-attendance-upload'),
     path('attendance/<int:pk>/', views.AttendanceDetailView.as_view(), name='attendance-detail'),
+    path('attendance-list/', views.attendance_list, name='attendance_list'),
     path('attendance/', views.AttendanceListView.as_view(), name='attendance-list'),
 
 
