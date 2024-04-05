@@ -2,16 +2,55 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
+from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
 from .models import Student,Subject,Faculty,Role,Attendance
 from django.shortcuts import get_object_or_404
 from .serializers import StudentSerializer,SubjectSerializer,FacultySerializer,RoleSerializer,AttendanceSerializer
 from django.http import JsonResponse
+from django.contrib.auth.hashers import make_password
 import csv
 from django.views.decorators.csrf import csrf_exempt
 
+from django.contrib.auth.hashers import check_password
 
+@api_view(['GET'])
+def get_user_type(request):
+    email = request.GET.get('email')
+    password = request.GET.get('password')
+    
+    if not email or not password:
+        return JsonResponse({'error': 'Email or password parameter is missing'}, status=400)
 
+    try:
+        role = Role.objects.get(emailid=email)
+        user_type = role.user_type
+        
+        # Verify password
+        if check_password(password, role.password):
+            if user_type == 1:  # If user is an admin
+                return JsonResponse({'user_type': user_type})
+            elif user_type == 2:  # If user is a student
+                student = Student.objects.get(email=email)
+                serializer = StudentSerializer(student)
+                # Exclude password field from the student details
+                student_data = serializer.data
+                student_data.pop('password', None)
+                return JsonResponse({'user_type': user_type, 'details': student_data})
+            elif user_type == 3:  # If user is a faculty
+                faculty = Faculty.objects.get(email_id=email)
+                serializer = FacultySerializer(faculty)
+                # Exclude password field from the faculty details
+                faculty_data = serializer.data
+                faculty_data.pop('password', None)
+                return JsonResponse({'user_type': user_type, 'details': faculty_data})
+            else:
+                return JsonResponse({'error': 'User not found or user type is invalid'}, status=404)
+        else:
+            return JsonResponse({'error': 'Incorrect password'}, status=400)
+    except Role.DoesNotExist:
+        return JsonResponse({'error': 'User not found'}, status=404)
+    
 class RoleList(generics.ListCreateAPIView):
     queryset = Role.objects.all()
     serializer_class = RoleSerializer
@@ -19,55 +58,46 @@ class RoleList(generics.ListCreateAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
+            # Hash the password before saving
+            serializer.validated_data['password'] = make_password(serializer.validated_data['password'])
             serializer.save()
+            # Exclude password field from response
+            serializer.data.pop('password', None)
             return Response({'message': 'Role created successfully'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+  
+    
+class StudentsList(generics.ListCreateAPIView):
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
 
-
-@api_view(['GET'])
-def get_user_type(request):
-    email = request.GET.get('email')
-    if not email:
-        return JsonResponse({'error': 'Email parameter is missing'}, status=400)
-
-    try:
-        role = Role.objects.get(emailid=email)
-        user_type = role.user_type
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
         
-        if user_type == 1:  # If user is an admin
-            return JsonResponse({'user_type': user_type})
-        elif user_type == 2:  # If user is a student
-            student = Student.objects.get(email=email)
-            serializer = StudentSerializer(student)
-            return JsonResponse({'user_type': user_type, 'details': serializer.data})
-        elif user_type == 3:  # If user is a faculty
-            faculty = Faculty.objects.get(email_id=email)
-            serializer = FacultySerializer(faculty)
-            return JsonResponse({'user_type': user_type, 'details': serializer.data})
-        else:
-            return JsonResponse({'error': 'User not found or user type is invalid'}, status=404)
-    except Role.DoesNotExist:
-        return JsonResponse({'error': 'User not found'}, status=404)
+        # Exclude password field from each student object in the response
+        for student_data in serializer.data:
+            student_data.pop('password', None)
+
+        return Response(serializer.data)
+    
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Hash the password before saving
+        password = make_password(serializer.validated_data['password'])
+        
+        # Create the student
+        student = serializer.save()
+        
+        # Create Role entry for the student including the password
+        Role.objects.create(emailid=request.data['email'], password=password, user_type=2)
+        
+        return Response({"message": "Student created successfully"}, status=status.HTTP_201_CREATED)
 
 
-# def get_rollno_from_email(request):
-#     if request.method == 'GET':
-#         email = request.GET.get('email', None)
-#         if email:
-#             try:
-#                 role = Role.objects.get(emailid=email, user_type=2)
-#                 student = Student.objects.get(email=email)
-#                 return JsonResponse({'rollno': student.rollno})
-#             except Role.DoesNotExist:
-#                 return JsonResponse({'error': 'User not found or not a student'}, status=404)
-#             except Student.DoesNotExist:
-#                 return JsonResponse({'error': 'Student not found for this email'}, status=404)
-#         else:
-#             return JsonResponse({'error': 'Email parameter is missing'}, status=400)
-#     else:
-#         return JsonResponse({'error': 'Only GET method is allowed'}, status=405)
-
-
+    
 @csrf_exempt
 def upload_students_csv(request):
     if request.method == 'POST' and request.FILES['csv_file']:
@@ -76,6 +106,7 @@ def upload_students_csv(request):
         reader = csv.DictReader(decoded_file)
 
         for row in reader:
+            password = make_password(row['password'])  # Hash the password
             Student.objects.create(
                 rollno=row['rollno'],
                 first_name=row['first_name'],
@@ -90,7 +121,8 @@ def upload_students_csv(request):
                 year=row['year'],
                 course=row['course'],
                 doj=row['doj'],
-                sem=row['sem']
+                sem=row['sem'],
+                password=password  # Save the hashed password
             )
             # Create Role entry for the student
             Role.objects.create(emailid=row['email'], user_type=2)
@@ -99,19 +131,8 @@ def upload_students_csv(request):
     else:
         return JsonResponse({'error': 'No file uploaded'}, status=400)
 
-class StudentsList(generics.ListCreateAPIView):
-    queryset = Student.objects.all()
-    serializer_class = StudentSerializer
 
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        # Create Role entry for the student
-        Role.objects.create(emailid=request.data['email'], user_type=2)
-        return Response({"message": "Student created successfully"}, status=status.HTTP_201_CREATED)
-
-class StudentDetail(generics.RetrieveUpdateDestroyAPIView):
+class StudentDetail(RetrieveUpdateDestroyAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
     lookup_url_kwarg = 'lookup'  # Custom lookup URL keyword argument
@@ -123,6 +144,23 @@ class StudentDetail(generics.RetrieveUpdateDestroyAPIView):
         else:  # If it's not a digit, assume it's an email
             return get_object_or_404(self.queryset, email=lookup_value)
 
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Update Student details
+        self.perform_update(serializer)
+        
+        # Update password in Role table for consistency
+        email = instance.email
+        role = get_object_or_404(Role, emailid=email)
+        role.password = serializer.validated_data.get('password')
+        role.save()
+        
+        return Response({"message": "Student updated successfully"})
+
+
 
 # FACULTY SECTION
 @csrf_exempt
@@ -133,6 +171,7 @@ def upload_faculty_csv(request):
         reader = csv.DictReader(decoded_file)
 
         for row in reader:
+            password = make_password(row['password'])  # Hash the password
             Faculty.objects.create(
                 name=row['name'],
                 faculty_id=row['faculty_id'],
@@ -140,7 +179,8 @@ def upload_faculty_csv(request):
                 email_id=row['email_id'],
                 dept=row['dept'],
                 specialisation=row['specialisation'],
-                role=row['role']
+                role=row['role'],
+                password=password  # Save the hashed password
             )
             # Create Role entry for the faculty
             Role.objects.create(emailid=row['email_id'], user_type=3)
@@ -153,15 +193,34 @@ class FacultyList(generics.ListCreateAPIView):
     queryset = Faculty.objects.all()
     serializer_class = FacultySerializer
 
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        
+        # Exclude password field from each faculty object in the response
+        for faculty_data in serializer.data:
+            faculty_data.pop('password', None)
+
+        return Response(serializer.data)
+    
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        # Create Role entry for the faculty
-        Role.objects.create(emailid=request.data['email_id'], user_type=3)
+        
+        # Hash the password before saving
+        password = make_password(serializer.validated_data['password'])
+        
+        # Create the faculty
+        faculty = serializer.save()
+        
+        # Create Role entry for the faculty including the password
+        Role.objects.create(emailid=request.data['email_id'], password=password, user_type=3)
+        
         return Response({"message": "Faculty created successfully"}, status=status.HTTP_201_CREATED)
 
-class FacultyDetail(generics.RetrieveUpdateDestroyAPIView):
+
+
+class FacultyDetail(RetrieveUpdateDestroyAPIView):
     queryset = Faculty.objects.all()
     serializer_class = FacultySerializer
     lookup_url_kwarg = 'lookup'  # Custom lookup URL keyword argument
@@ -179,13 +238,30 @@ class FacultyDetail(generics.RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
+        
+        # Update Faculty details
         self.perform_update(serializer)
+        
+        # Update password in Role table for consistency
+        email = instance.email_id
+        role = get_object_or_404(Role, emailid=email)
+        role.password = serializer.validated_data.get('password')
+        role.save()
+        
         return Response({"message": "Faculty updated successfully"})
 
     def delete(self, request, *args, **kwargs):
         instance = self.get_object()
         self.perform_destroy(instance)
-        return Response({"message": "Faculty deleted successfully"})
+        
+        # Delete corresponding entry in Role table
+        email = instance.email_id
+        role = get_object_or_404(Role, emailid=email)
+        role.delete()
+        
+        return Response({"message": "Faculty deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
 
 # SUBJECT SECTION STARTS
 
@@ -273,6 +349,9 @@ def filter_subjects(request):
         return JsonResponse(subjects_list, safe=False)
     
 
+
+# ATTENDANCE 
+    
 def filter_students(request):
     if request.method == 'GET':
         dept = request.GET.get('dept', '')

@@ -31,6 +31,7 @@ class Student(models.Model):
     course = models.CharField(max_length=10, choices=course_choices)
     doj = models.DateField()
     sem = models.CharField(max_length=2) 
+    password = models.CharField(max_length=128,null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -45,6 +46,7 @@ class Faculty(models.Model):
     dept = models.CharField(max_length=100)
     specialisation = models.TextField() 
     role = models.TextField()  
+    password = models.CharField(max_length=128,null=True)
 
     def __str__(self):
         return self.name
@@ -80,6 +82,7 @@ class Role(models.Model):
         (3, 'Faculty'),
     )
     emailid = models.EmailField(primary_key=True,unique=True)
+    password = models.CharField(max_length=128,null=True)
     user_type = models.PositiveSmallIntegerField(choices=USER_TYPES)
 
     def __str__(self):
