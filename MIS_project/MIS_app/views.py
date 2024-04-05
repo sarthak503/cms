@@ -100,10 +100,7 @@ class StudentsList(generics.ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
-        
-        # Exclude password field from each student object in the response
-        for student_data in serializer.data:
-            student_data.pop('password', None)
+     
 
         return Response(serializer.data)
     
@@ -174,21 +171,9 @@ class StudentDetail(RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        # Hash the new password before updating
-        password = serializer.validated_data.get('password')
-        if password:
-            serializer.validated_data['password'] = make_password(password)
-        
-        # Update Student details
         self.perform_update(serializer)
-        
-        # Update password in Role table for consistency
-        email = instance.email
-        role = get_object_or_404(Role, emailid=email)
-        if password:
-            role.password = serializer.validated_data.get('password')
-            role.save()
+       
+    
         
         return Response({"message": "Student updated successfully"})
 
@@ -228,9 +213,7 @@ class FacultyList(generics.ListCreateAPIView):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         
-        # Exclude password field from each faculty object in the response
-        for faculty_data in serializer.data:
-            faculty_data.pop('password', None)
+  
 
         return Response(serializer.data)
     
@@ -268,21 +251,9 @@ class FacultyDetail(RetrieveUpdateDestroyAPIView):
         instance = self.get_object()
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
-        
-        # Hash the new password before updating
-        password = serializer.validated_data.get('password')
-        if password:
-            serializer.validated_data['password'] = make_password(password)
-        
-        # Update Faculty details
         self.perform_update(serializer)
         
-        # Update password in Role table for consistency
-        email = instance.email_id
-        role = get_object_or_404(Role, emailid=email)
-        if password:
-            role.password = serializer.validated_data.get('password')
-            role.save()
+  
         
         return Response({"message": "Faculty updated successfully"})
 
