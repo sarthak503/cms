@@ -47,7 +47,7 @@ def get_user_type(request):
             else:
                 return JsonResponse({'error': 'User not found or user type is invalid'}, status=404)
         else:
-            return JsonResponse({'error': 'Incorrect password'}, status=400)
+            return JsonResponse({'error': 'Incorrect password or emailid'}, status=400)
     except Role.DoesNotExist:
         return JsonResponse({'error': 'User not found'}, status=404)
     
@@ -66,7 +66,33 @@ class RoleList(generics.ListCreateAPIView):
             return Response({'message': 'Role created successfully'}, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
   
-    
+
+
+class RoleDetail(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Role.objects.all()
+    serializer_class = RoleSerializer
+    lookup_url_kwarg = 'emailid'  # Custom lookup URL keyword argument
+
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        # Hash the password before saving
+        serializer.validated_data['password'] = make_password(serializer.validated_data['password'])
+        
+        # Update Role details
+        self.perform_update(serializer)
+        
+        return Response({"message": "Role updated successfully"})
+
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        
+        return Response({"message": "Role deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+#STUDENT 
 class StudentsList(generics.ListCreateAPIView):
     queryset = Student.objects.all()
     serializer_class = StudentSerializer
@@ -149,17 +175,22 @@ class StudentDetail(RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Hash the new password before updating
+        password = serializer.validated_data.get('password')
+        if password:
+            serializer.validated_data['password'] = make_password(password)
+        
         # Update Student details
         self.perform_update(serializer)
         
         # Update password in Role table for consistency
         email = instance.email
         role = get_object_or_404(Role, emailid=email)
-        role.password = serializer.validated_data.get('password')
-        role.save()
+        if password:
+            role.password = serializer.validated_data.get('password')
+            role.save()
         
         return Response({"message": "Student updated successfully"})
-
 
 
 # FACULTY SECTION
@@ -219,7 +250,6 @@ class FacultyList(generics.ListCreateAPIView):
         return Response({"message": "Faculty created successfully"}, status=status.HTTP_201_CREATED)
 
 
-
 class FacultyDetail(RetrieveUpdateDestroyAPIView):
     queryset = Faculty.objects.all()
     serializer_class = FacultySerializer
@@ -239,14 +269,20 @@ class FacultyDetail(RetrieveUpdateDestroyAPIView):
         serializer = self.get_serializer(instance, data=request.data)
         serializer.is_valid(raise_exception=True)
         
+        # Hash the new password before updating
+        password = serializer.validated_data.get('password')
+        if password:
+            serializer.validated_data['password'] = make_password(password)
+        
         # Update Faculty details
         self.perform_update(serializer)
         
         # Update password in Role table for consistency
         email = instance.email_id
         role = get_object_or_404(Role, emailid=email)
-        role.password = serializer.validated_data.get('password')
-        role.save()
+        if password:
+            role.password = serializer.validated_data.get('password')
+            role.save()
         
         return Response({"message": "Faculty updated successfully"})
 
@@ -260,9 +296,7 @@ class FacultyDetail(RetrieveUpdateDestroyAPIView):
         role.delete()
         
         return Response({"message": "Faculty deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
-
-
-
+    
 # SUBJECT SECTION STARTS
 
 

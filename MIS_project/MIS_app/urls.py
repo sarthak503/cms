@@ -11,6 +11,7 @@ urlpatterns = [
     path('upload-faculty-csv/', views.upload_faculty_csv, name='upload-faculty-csv'),
     path('filter/', views.filter_subjects, name='filter_subjects'),
     path('roles/', views.RoleList.as_view(), name='role-list'),
+    path('roles/<str:emailid>/', views.RoleDetail.as_view(), name='role-detail'),
     path('get-user-type/', views.get_user_type, name='get-user-type'),
     path('students/<str:lookup>/', views.StudentDetail.as_view(), name='student_detail'),
     path('faculty/<str:lookup>/', views.FacultyDetail.as_view(), name='faculty_detail'),
