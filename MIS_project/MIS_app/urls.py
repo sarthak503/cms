@@ -25,6 +25,8 @@ urlpatterns = [
     path('count-faculties-dept/', views.count_faculties_by_department, name='count-faculties-by-department'),
     path('count-subjects-dept/', views.count_subjects_by_department, name='count-subjects-by-department'),
     path('count-students-dept/', views.count_students_by_department, name='count_students_by_department'),
+    path('count-students-dept-prog/', views.count_students_by_department_and_program, name='count_students_by_department_and_program'),
+
     
 
     

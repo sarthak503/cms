@@ -496,3 +496,8 @@ def count_students_by_department(request):
     counts = Student.objects.values('dept').annotate(total=Count('rollno')).order_by('dept')
     response = {item['dept']: item['total'] for item in counts}
     return JsonResponse(response)
+
+def count_students_by_department_and_program(request):
+    counts = Student.objects.values('dept', 'course').annotate(total=Count('rollno')).order_by('dept', 'course')
+    response = [{'dept': item['dept'], 'course': item['course'], 'total': item['total']} for item in counts]
+    return JsonResponse(response, safe=False)
