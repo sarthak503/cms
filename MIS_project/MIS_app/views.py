@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.contrib.auth.hashers import make_password
 import csv
 from django.views.decorators.csrf import csrf_exempt
-
+from django.db.models import Q
 from django.contrib.auth.hashers import check_password
 
 @api_view(['GET'])
@@ -156,7 +156,6 @@ class StudentDetail(RetrieveUpdateDestroyAPIView):
         
         return Response({"message": "Student deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
-
 @csrf_exempt
 def upload_students_csv(request):
     if request.method == 'POST' and request.FILES['csv_file']:
@@ -186,14 +185,13 @@ def upload_students_csv(request):
                     sem=row['sem'],
                     password=password  # Save the hashed password
                 )
-                # Create Role entry for the student
-                Role.objects.create(emailid=row['email'], user_type=2)
+                # Create Role entry for the student including the hashed password
+                Role.objects.create(emailid=row['email'], password=password, user_type=2)
                 new_students_count += 1
 
         return JsonResponse({'message': f'{new_students_count} new students added from CSV file'}, status=200)
     else:
         return JsonResponse({'error': 'No file uploaded'}, status=400)
-
 
 
 # FACULTY SECTION
@@ -206,8 +204,8 @@ def upload_faculty_csv(request):
         new_faculty_count = 0
 
         for row in reader:
-            # Check if the faculty with the given email already exists
-            if not Faculty.objects.filter(email_id=row['email_id']).exists():
+            # Check if the faculty with the given faculty ID or email already exists
+            if not Faculty.objects.filter(Q(faculty_id=row['faculty_id']) | Q(email_id=row['email_id'])).exists():
                 password = make_password(row['password'])  # Hash the password
                 Faculty.objects.create(
                     name=row['name'],
@@ -219,15 +217,14 @@ def upload_faculty_csv(request):
                     role=row['role'],
                     password=password  # Save the hashed password
                 )
-                # Create Role entry for the faculty
-                Role.objects.create(emailid=row['email_id'], user_type=3)
+                # Create Role entry for the faculty including the hashed password
+                Role.objects.create(emailid=row['email_id'], password=password, user_type=3)
                 new_faculty_count += 1
 
         return JsonResponse({'message': f'{new_faculty_count} new faculty added from CSV file'}, status=200)
     else:
         return JsonResponse({'error': 'No file uploaded'}, status=400)
-
-
+    
 class FacultyList(generics.ListCreateAPIView):
     queryset = Faculty.objects.all()
     serializer_class = FacultySerializer
