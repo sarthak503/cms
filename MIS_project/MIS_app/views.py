@@ -467,6 +467,16 @@ def attendance_list(request):
 
     return JsonResponse({'error': 'Method not allowed.'}, status=405)
 
+class AllAttendanceListView(APIView):
+    def get(self, request):
+        # Get all attendances
+        attendances = Attendance.objects.all()
+        
+        # Serialize the attendances
+        serializer = AttendanceSerializer(attendances, many=True)
+        
+        # Return the serialized data as response
+        return Response(serializer.data)
 
 def count_students_by_program(request):
     counts = Student.objects.values('course').annotate(total=Count('course')).order_by('course')
@@ -499,5 +509,5 @@ def count_students_by_department(request):
 
 def count_students_by_department_and_program(request):
     counts = Student.objects.values('dept', 'course').annotate(total=Count('rollno')).order_by('dept', 'course')
-    response = [{'dept': item['dept'], 'course': item['course'], 'total': item['total']} for item in counts]
-    return JsonResponse(response, safe=False)
+    response = {f"{item['dept']} {item['course']}": item['total'] for item in counts}
+    return JsonResponse(response)

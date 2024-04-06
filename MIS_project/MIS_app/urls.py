@@ -20,6 +20,7 @@ urlpatterns = [
     path('attendance/<int:pk>/', views.AttendanceDetailView.as_view(), name='attendance-detail'),
     path('attendance-list/', views.attendance_list, name='attendance_list'),
     path('attendance/', views.AttendanceListView.as_view(), name='attendance-list'),
+    path('all-attendances/', views.AllAttendanceListView.as_view(), name='all-attendance-list'),
     path('count-students-program/', views.count_students_by_program, name='count_students_by_program'),
     path('total-students/', views.total_students, name='total-students'),
     path('count-faculties-dept/', views.count_faculties_by_department, name='count-faculties-by-department'),
