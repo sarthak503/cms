@@ -11,7 +11,7 @@ from django.http import JsonResponse
 from django.contrib.auth.hashers import make_password
 import csv
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.contrib.auth.hashers import check_password
 
 @api_view(['GET'])
@@ -466,3 +466,33 @@ def attendance_list(request):
         return JsonResponse({'attendance': serializer.data})
 
     return JsonResponse({'error': 'Method not allowed.'}, status=405)
+
+
+def count_students_by_program(request):
+    counts = Student.objects.values('course').annotate(total=Count('course')).order_by('course')
+    response = {item['course']: item['total'] for item in counts}
+    return JsonResponse(response)
+
+def total_students(request):
+    total_count = Student.objects.count()
+    return JsonResponse({'total_students': total_count})
+
+def count_faculties_by_department(request):
+    counts = {}
+    faculties = Faculty.objects.all()
+    for faculty in faculties:
+        counts[faculty.dept] = counts.get(faculty.dept, 0) + 1
+    return JsonResponse(counts)
+
+def count_subjects_by_department(request):
+    counts = {}
+    courses = Subject.objects.all()
+    for course in courses:
+        counts[course.dept] = counts.get(course.dept, 0) + 1
+    return JsonResponse(counts)
+
+
+def count_students_by_department(request):
+    counts = Student.objects.values('dept').annotate(total=Count('rollno')).order_by('dept')
+    response = {item['dept']: item['total'] for item in counts}
+    return JsonResponse(response)
