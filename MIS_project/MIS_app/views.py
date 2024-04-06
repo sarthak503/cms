@@ -92,6 +92,12 @@ class RoleDetail(generics.RetrieveUpdateDestroyAPIView):
         
         return Response({"message": "Role deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
 
+
+
+
+
+
+
 #STUDENT 
 class StudentsList(generics.ListCreateAPIView):
     queryset = Student.objects.all()
@@ -100,8 +106,6 @@ class StudentsList(generics.ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
-     
-
         return Response(serializer.data)
     
     def post(self, request, *args, **kwargs):
@@ -112,7 +116,7 @@ class StudentsList(generics.ListCreateAPIView):
         password = make_password(serializer.validated_data['password'])
         
         # Create the student
-        student = serializer.save()
+        student = serializer.save(password=password)  # Pass hashed password to save method
         
         # Create Role entry for the student including the password
         Role.objects.create(emailid=request.data['email'], password=password, user_type=2)
@@ -120,7 +124,39 @@ class StudentsList(generics.ListCreateAPIView):
         return Response({"message": "Student created successfully"}, status=status.HTTP_201_CREATED)
 
 
+
+class StudentDetail(RetrieveUpdateDestroyAPIView):
+    queryset = Student.objects.all()
+    serializer_class = StudentSerializer
+    lookup_url_kwarg = 'lookup'  # Custom lookup URL keyword argument
+
+    def get_object(self):
+        lookup_value = self.kwargs.get(self.lookup_url_kwarg)
+        if lookup_value.isdigit():  # Check if the lookup value is a digit (assuming it's a rollno)
+            return get_object_or_404(self.queryset, rollno=lookup_value)
+        else:  # If it's not a digit, assume it's an email
+            return get_object_or_404(self.queryset, email=lookup_value)
+
+    def put(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+        return Response({"message": "Student updated successfully"})
     
+    def delete(self, request, *args, **kwargs):
+        instance = self.get_object()
+        
+        # Delete corresponding record from roles table
+        email = instance.email
+        Role.objects.filter(emailid=email).delete()
+        
+        # Delete student record
+        instance.delete()
+        
+        return Response({"message": "Student deleted successfully"}, status=status.HTTP_204_NO_CONTENT)
+
+
 @csrf_exempt
 def upload_students_csv(request):
     if request.method == 'POST' and request.FILES['csv_file']:
@@ -158,28 +194,6 @@ def upload_students_csv(request):
     else:
         return JsonResponse({'error': 'No file uploaded'}, status=400)
 
-
-class StudentDetail(RetrieveUpdateDestroyAPIView):
-    queryset = Student.objects.all()
-    serializer_class = StudentSerializer
-    lookup_url_kwarg = 'lookup'  # Custom lookup URL keyword argument
-
-    def get_object(self):
-        lookup_value = self.kwargs.get(self.lookup_url_kwarg)
-        if lookup_value.isdigit():  # Check if the lookup value is a digit (assuming it's a rollno)
-            return get_object_or_404(self.queryset, rollno=lookup_value)
-        else:  # If it's not a digit, assume it's an email
-            return get_object_or_404(self.queryset, email=lookup_value)
-
-    def put(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = self.get_serializer(instance, data=request.data)
-        serializer.is_valid(raise_exception=True)
-        self.perform_update(serializer)
-       
-    
-        
-        return Response({"message": "Student updated successfully"})
 
 
 # FACULTY SECTION
@@ -221,9 +235,6 @@ class FacultyList(generics.ListCreateAPIView):
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
-        
-  
-
         return Response(serializer.data)
     
     def post(self, request, *args, **kwargs):
@@ -234,7 +245,7 @@ class FacultyList(generics.ListCreateAPIView):
         password = make_password(serializer.validated_data['password'])
         
         # Create the faculty
-        faculty = serializer.save()
+        faculty = serializer.save(password=password)  # Pass hashed password to save method
         
         # Create Role entry for the faculty including the password
         Role.objects.create(emailid=request.data['email_id'], password=password, user_type=3)
