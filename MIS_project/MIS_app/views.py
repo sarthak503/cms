@@ -127,30 +127,34 @@ def upload_students_csv(request):
         csv_file = request.FILES['csv_file']
         decoded_file = csv_file.read().decode('utf-8').splitlines()
         reader = csv.DictReader(decoded_file)
+        new_students_count = 0
 
         for row in reader:
-            password = make_password(row['password'])  # Hash the password
-            Student.objects.create(
-                rollno=row['rollno'],
-                first_name=row['first_name'],
-                last_name=row['last_name'],
-                email=row['email'],
-                dob=row['dob'],
-                address=row['address'],
-                phone=row['phone'],
-                gender=row['gender'],
-                batch=row['batch'],
-                dept=row['dept'],
-                year=row['year'],
-                course=row['course'],
-                doj=row['doj'],
-                sem=row['sem'],
-                password=password  # Save the hashed password
-            )
-            # Create Role entry for the student
-            Role.objects.create(emailid=row['email'], user_type=2)
+            # Check if the student with the given email already exists
+            if not Student.objects.filter(email=row['email']).exists():
+                password = make_password(row['password'])  # Hash the password
+                Student.objects.create(
+                    rollno=row['rollno'],
+                    first_name=row['first_name'],
+                    last_name=row['last_name'],
+                    email=row['email'],
+                    dob=row['dob'],
+                    address=row['address'],
+                    phone=row['phone'],
+                    gender=row['gender'],
+                    batch=row['batch'],
+                    dept=row['dept'],
+                    year=row['year'],
+                    course=row['course'],
+                    doj=row['doj'],
+                    sem=row['sem'],
+                    password=password  # Save the hashed password
+                )
+                # Create Role entry for the student
+                Role.objects.create(emailid=row['email'], user_type=2)
+                new_students_count += 1
 
-        return JsonResponse({'message': 'Data from CSV file uploaded successfully'}, status=200)
+        return JsonResponse({'message': f'{new_students_count} new students added from CSV file'}, status=200)
     else:
         return JsonResponse({'error': 'No file uploaded'}, status=400)
 
@@ -185,25 +189,30 @@ def upload_faculty_csv(request):
         csv_file = request.FILES['csv_file']
         decoded_file = csv_file.read().decode('utf-8').splitlines()
         reader = csv.DictReader(decoded_file)
+        new_faculty_count = 0
 
         for row in reader:
-            password = make_password(row['password'])  # Hash the password
-            Faculty.objects.create(
-                name=row['name'],
-                faculty_id=row['faculty_id'],
-                phone_no=row['phone_no'],
-                email_id=row['email_id'],
-                dept=row['dept'],
-                specialisation=row['specialisation'],
-                role=row['role'],
-                password=password  # Save the hashed password
-            )
-            # Create Role entry for the faculty
-            Role.objects.create(emailid=row['email_id'], user_type=3)
+            # Check if the faculty with the given email already exists
+            if not Faculty.objects.filter(email_id=row['email_id']).exists():
+                password = make_password(row['password'])  # Hash the password
+                Faculty.objects.create(
+                    name=row['name'],
+                    faculty_id=row['faculty_id'],
+                    phone_no=row['phone_no'],
+                    email_id=row['email_id'],
+                    dept=row['dept'],
+                    specialisation=row['specialisation'],
+                    role=row['role'],
+                    password=password  # Save the hashed password
+                )
+                # Create Role entry for the faculty
+                Role.objects.create(emailid=row['email_id'], user_type=3)
+                new_faculty_count += 1
 
-        return JsonResponse({'message': 'Data from CSV file uploaded successfully'}, status=200)
+        return JsonResponse({'message': f'{new_faculty_count} new faculty added from CSV file'}, status=200)
     else:
         return JsonResponse({'error': 'No file uploaded'}, status=400)
+
 
 class FacultyList(generics.ListCreateAPIView):
     queryset = Faculty.objects.all()
@@ -277,18 +286,22 @@ def upload_subjects_csv(request):
         csv_file = request.FILES['csv_file']
         decoded_file = csv_file.read().decode('utf-8').splitlines()
         reader = csv.DictReader(decoded_file)
+        new_subjects_count = 0
 
         for row in reader:
-            Subject.objects.create(
-                course_code=row['course_code'],
-                subject_name=row['subject_name'],
-                semester=row['semester'],
-                intended_for=row['intended_for'],
-                credit=row['credit'],
-                teacher_id=row.get('teacher_id', None)  # Handle null value for teacher_id
-            )
+            # Check if the subject with the given course code already exists
+            if not Subject.objects.filter(course_code=row['course_code']).exists():
+                Subject.objects.create(
+                    course_code=row['course_code'],
+                    subject_name=row['subject_name'],
+                    semester=row['semester'],
+                    intended_for=row['intended_for'],
+                    credit=row['credit'],
+                    teacher_id=row.get('teacher_id', None)  # Handle null value for teacher_id
+                )
+                new_subjects_count += 1
 
-        return JsonResponse({'message': 'Data from CSV file uploaded successfully'}, status=200)
+        return JsonResponse({'message': f'{new_subjects_count} new subjects added from CSV file'}, status=200)
     else:
         return JsonResponse({'error': 'No file uploaded'}, status=400)
     
