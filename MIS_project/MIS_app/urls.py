@@ -27,6 +27,10 @@ urlpatterns = [
     path('count-subjects-dept/', views.count_subjects_by_department, name='count-subjects-by-department'),
     path('count-students-dept/', views.count_students_by_department, name='count_students_by_department'),
     path('count-students-dept-prog/', views.count_students_by_department_and_program, name='count_students_by_department_and_program'),
+    path('bulk-result_upload/', views.BulkResultUpload.as_view(), name='bulk_result_upload'),
+    path('result-list/', views.result_list, name='result_list'),
+    path('result-details/', views.get_result_details, name='result_details'),
+    path('all-results/', views.AllResultListView.as_view(), name='all_results'),
 
     
 

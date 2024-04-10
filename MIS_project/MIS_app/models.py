@@ -106,3 +106,21 @@ class Attendance(models.Model):
         unique_together = ('student', 'date', 'subject')
     def __str__(self):
         return f"{self.student} - {self.subject} - {self.date} - {self.status}"
+
+
+class Result(models.Model):
+    EXAM_CHOICES = (
+        ('CT1', 'CT1'),
+        ('CT2', 'CT2'),
+        ('EndSem', 'End Semester Exam'),
+    )
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
+    exam = models.CharField(max_length=10, choices=EXAM_CHOICES)
+    marks = models.DecimalField(max_digits=5, decimal_places=2)
+
+    class Meta:
+        unique_together = ('student', 'subject', 'exam')
+
+    def __str__(self):
+        return f"{self.student} - {self.subject} - {self.exam} - Marks: {self.marks}"

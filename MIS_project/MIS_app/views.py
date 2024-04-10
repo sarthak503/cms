@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 from rest_framework.views import APIView
-from .models import Student,Subject,Faculty,Role,Attendance
+from .models import Result, Student,Subject,Faculty,Role,Attendance
 from django.shortcuts import get_object_or_404
 from .serializers import StudentSerializer,SubjectSerializer,FacultySerializer,RoleSerializer,AttendanceSerializer
 from django.http import JsonResponse
@@ -511,3 +511,70 @@ def count_students_by_department_and_program(request):
     counts = Student.objects.values('dept', 'course').annotate(total=Count('rollno')).order_by('dept', 'course')
     response = {f"{item['dept']} {item['course']}": item['total'] for item in counts}
     return JsonResponse(response)
+
+# Result
+from .serializers import ResultSerializer
+class BulkResultUpload(APIView):
+    def post(self, request):
+        result_data = request.data  # Assuming the frontend sends an array of result objects
+        errors = []
+        for data in result_data:
+            serializer = ResultSerializer(data=data)
+            if serializer.is_valid():
+                serializer.save()
+            else:
+                errors.append(serializer.errors)
+        
+        if errors:
+            return Response({"errors": errors}, status=400)
+        else:
+            return Response({"message": "Results uploaded successfully"}, status=200)
+        
+def get_result_details(request):
+    if request.method == 'GET':
+        subject_code = request.GET.get('subject')
+        exam = request.GET.get('exam')
+        rollno = request.GET.get('rollno')
+
+        if not all([subject_code, exam, rollno]):
+            return JsonResponse({'error': 'Subject, exam, and roll number are required parameters.'}, status=400)
+
+        try:
+            result = Result.objects.get(subject__course_code=subject_code, exam=exam, student__rollno=rollno)
+            result_data = {
+                'student': result.student.rollno,
+                'subject': result.subject.course_code,
+                'exam': result.exam,
+                'marks': result.marks
+            }
+            return JsonResponse(result_data)
+        except Result.DoesNotExist:
+            return JsonResponse({'error': 'Result not found.'}, status=404)
+
+    return JsonResponse({'error': 'Method not allowed.'}, status=405)
+
+def result_list(request):
+    if request.method == 'GET':
+        subject_id = request.GET.get('subject')
+        exam = request.GET.get('exam')
+
+        if subject_id is None or exam is None:
+            return JsonResponse({'error': 'Both subject_id and exam are required.'}, status=400)
+
+        results = Result.objects.filter(subject_id=subject_id, exam=exam)
+        serializer = ResultSerializer(results, many=True)
+
+        return JsonResponse({'results': serializer.data})
+
+    return JsonResponse({'error': 'Method not allowed.'}, status=405)
+
+class AllResultListView(APIView):
+    def get(self, request):
+        # Get all results
+        results = Result.objects.all()
+        
+        # Serialize the results
+        serializer = ResultSerializer(results, many=True)
+        
+        # Return the serialized data as response
+        return Response(serializer.data)

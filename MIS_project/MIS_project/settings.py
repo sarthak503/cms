@@ -133,7 +133,8 @@ REST_FRAMEWORK = {
 }
 
 # CORS_ALLOWED_ORIGIN = [
-#     'http://localhost:5173',  # Example for development environment
+#     'http://localhost:5173',
+  # Example for development environment
 # ]
 
 CORS_ORIGIN_ALLOW_ALL = True

@@ -41,3 +41,9 @@ class AttendanceSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         return Attendance.objects.create(**validated_data)
 
+from .models import Result
+
+class ResultSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Result
+        fields = '__all__'
